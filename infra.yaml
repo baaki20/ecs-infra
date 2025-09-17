@@ -3,6 +3,9 @@ Description: >
   CloudFormation template for a highly available, containerized full-stack Java web application
   on Amazon ECS (Fargate) with a secure CI/CD pipeline.
 
+# -----------------------------#
+# Parameters                   #
+# -----------------------------#
 Parameters:
   VpcCidr:
     Type: String
@@ -41,6 +44,7 @@ Resources:
   # ------------------------------------------------------------#
   #  VPC and Networking                                         #
   # ------------------------------------------------------------#
+  # VPC for the application
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -51,6 +55,7 @@ Resources:
         - Key: Name
           Value: !Sub 'ecs-VPC'
 
+  # Internet Gateway for public internet access
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
@@ -58,12 +63,14 @@ Resources:
         - Key: Name
           Value: !Sub 'ecs-IGW'
 
+  # Attach Internet Gateway to VPC
   VPCGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
 
+  # Public subnets in two AZs for high availability
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -86,6 +93,7 @@ Resources:
         - Key: Name
           Value: !Sub 'ecs-PublicSubnet2'
 
+  # Private subnets in two AZs for ECS tasks
   PrivateSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -106,6 +114,7 @@ Resources:
         - Key: Name
           Value: !Sub 'ecs-PrivateSubnet2'
 
+  # Route table for public subnets
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -114,6 +123,7 @@ Resources:
         - Key: Name
           Value: !Sub 'ecs-PublicRouteTable'
 
+  # Default route to Internet Gateway for public subnets
   PublicRoute:
     Type: AWS::EC2::Route
     Properties:
@@ -121,6 +131,7 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
 
+  # Associate public subnets with public route table
   PublicSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -133,6 +144,7 @@ Resources:
       SubnetId: !Ref PublicSubnet2
       RouteTableId: !Ref PublicRouteTable
 
+  # Elastic IPs for NAT Gateways
   NatGatewayEIP1:
     Type: AWS::EC2::EIP
     Properties:
@@ -141,6 +153,7 @@ Resources:
         - Key: Name
           Value: !Sub 'ecs-NatGatewayEIP1'
 
+  # NAT Gateway in PublicSubnet1 for outbound internet from private subnet
   NatGateway1:
     Type: AWS::EC2::NatGateway
     Properties:
@@ -158,6 +171,7 @@ Resources:
         - Key: Name
           Value: !Sub 'ecs-NatGatewayEIP2'
 
+  # NAT Gateway in PublicSubnet2 for redundancy
   NatGateway2:
     Type: AWS::EC2::NatGateway
     Properties:
@@ -167,6 +181,7 @@ Resources:
         - Key: Name
           Value: !Sub 'ecs-NatGateway2'
 
+  # Private route tables for each private subnet
   PrivateRouteTable1:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -175,6 +190,7 @@ Resources:
         - Key: Name
           Value: !Sub 'ecs-PrivateRouteTable1'
 
+  # Route for private subnet 1 to NAT Gateway 1
   PrivateRoute1:
     Type: AWS::EC2::Route
     Properties:
@@ -182,6 +198,7 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId: !Ref NatGateway1
 
+  # Associate private subnet 1 with its route table
   PrivateSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -196,6 +213,7 @@ Resources:
         - Key: Name
           Value: !Sub 'ecs-PrivateRouteTable2'
 
+  # Route for private subnet 2 to NAT Gateway 2
   PrivateRoute2:
     Type: AWS::EC2::Route
     Properties:
@@ -203,6 +221,7 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId: !Ref NatGateway2
 
+  # Associate private subnet 2 with its route table
   PrivateSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -212,6 +231,7 @@ Resources:
   # ------------------------------------------------------------#
   #  Security Groups                                            #
   # ------------------------------------------------------------#
+  # Security group for ALB to allow HTTP traffic
   AlbSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -227,6 +247,7 @@ Resources:
         - Key: Name
           Value: !Sub 'ecs-ALB-SG'
 
+  # Security group for ECS tasks, allows traffic from ALB
   EcsSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -245,6 +266,7 @@ Resources:
   # ------------------------------------------------------------#
   #  ECS & Fargate                                              #
   # ------------------------------------------------------------#
+  # ECS Cluster for running services
   EcsCluster:
     Type: AWS::ECS::Cluster
     Properties:
@@ -259,6 +281,7 @@ Resources:
         - Key: Name
           Value: !Sub 'ecs-Cluster'
 
+  # ECR repository for container images
   EcrRepository:
     Type: AWS::ECR::Repository
     Properties:
@@ -285,6 +308,7 @@ Resources:
               - ecr:UploadLayerPart
               - ecr:CompleteLayerUpload
   
+  # S3 bucket for CodePipeline artifacts
   CodePipelineBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -295,6 +319,7 @@ Resources:
         - Key: Name
           Value: !Sub 'codepipeline-ecs-artifact-store'
 
+  # OIDC provider for GitHub Actions authentication
   GitHubOidcProvider:
     Type: AWS::IAM::OIDCProvider
     Properties:
@@ -307,6 +332,7 @@ Resources:
         - Key: Name
           Value: !Sub ecs-GitHubOidcProvider
 
+  # IAM Role for GitHub Actions to push to ECR and upload to S3
   GitHubActionsRole:
     Type: AWS::IAM::Role
     Properties:
@@ -353,6 +379,7 @@ Resources:
                 Resource: !Sub arn:aws:s3:::${CodePipelineBucket}/*
 
 
+  # IAM Role for ECS task execution (pull images, write logs)
   EcsTaskExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -367,6 +394,7 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
 
+  # IAM Role for ECS tasks (application-level permissions)
   EcsTaskRole:
     Type: AWS::IAM::Role
     Properties:
@@ -387,12 +415,14 @@ Resources:
                   - 's3:ListBucket'
                 Resource: '*'
 
+  # CloudWatch Log Group for ECS container logs
   CloudWatchLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub '/ecs'
       RetentionInDays: 14
 
+  # ECS Task Definition for the application container
   EcsTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -429,6 +459,7 @@ Resources:
             - Name: SPRING_PROFILES_ACTIVE
               Value: production
 
+  # ECS Service using Fargate, integrated with CodeDeploy for blue/green deployments
   EcsService:
     Type: AWS::ECS::Service
     DependsOn:
@@ -461,6 +492,7 @@ Resources:
   # ------------------------------------------------------------#
   #  Application Load Balancer (ALB)                            #
   # ------------------------------------------------------------#
+  # Internet-facing ALB for the application
   Alb:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -474,6 +506,7 @@ Resources:
         - Key: Name
           Value: !Sub 'ecs-ALB'
 
+  # Target group for blue environment
   TargetGroupBlue:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     DependsOn: Alb
@@ -492,6 +525,7 @@ Resources:
       Matcher:
         HttpCode: 200-399
 
+  # Target group for green environment
   TargetGroupGreen:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -509,6 +543,7 @@ Resources:
         HttpCode: 200-399
 
 
+  # Listener for production traffic (port 80)
   AlbListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     DependsOn: TargetGroupBlue
@@ -521,6 +556,7 @@ Resources:
           TargetGroupArn: !Ref TargetGroupBlue
 
 
+  # Listener for test/green traffic (port 9000)
   AlbTestListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -535,6 +571,7 @@ Resources:
   #  CI/CD Pipeline and CodeDeploy                              #
   # ------------------------------------------------------------#
   
+  # IAM Role for CodeDeploy
   CodeDeployServiceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -548,12 +585,14 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS
 
+  # CodeDeploy Application for ECS
   CodeDeployApplication:
     Type: AWS::CodeDeploy::Application
     Properties:
       ApplicationName: !Sub 'ecs-App'
       ComputePlatform: ECS
 
+  # CodeDeploy Deployment Group for blue/green deployments
   CodeDeployDeploymentGroup:
     Type: AWS::CodeDeploy::DeploymentGroup
     DependsOn: EcsService
@@ -591,6 +630,7 @@ Resources:
           ActionOnTimeout: CONTINUE_DEPLOYMENT
   
 
+  # IAM Role for CodePipeline
   CodePipelineServiceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -627,6 +667,7 @@ Resources:
                 
 
 
+  # CodePipeline for CI/CD
   CodePipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
@@ -674,6 +715,7 @@ Resources:
                 
               RunOrder: 1
 
+  # IAM Role for EventBridge to trigger CodePipeline
   EventBridgeRole:
     Type: AWS::IAM::Role
     DependsOn: CodePipeline
@@ -694,6 +736,7 @@ Resources:
                 Action: codepipeline:StartPipelineExecution
                 Resource: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}
 
+  # EventBridge rule to trigger pipeline on ECR image push
   EventBridgeRule:
     Type: AWS::Events::Rule
     Properties:
@@ -719,7 +762,10 @@ Resources:
           Id: CodePipelineTarget
 
 
-  # # Scalable target for the ECS service
+  # ------------------------------------------------------------#
+  #  ECS Service Auto Scaling                                   #
+  # ------------------------------------------------------------#
+  # Scalable target for ECS service
   EcsServiceScalableTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
     DependsOn: EcsService
@@ -731,6 +777,7 @@ Resources:
       ScalableDimension: ecs:service:DesiredCount
       ServiceNamespace: ecs
 
+  # IAM Role for Application Auto Scaling
   ApplicationAutoScalingRole:
     Type: AWS::IAM::Role
     Properties:
@@ -755,6 +802,7 @@ Resources:
                   - cloudwatch:DescribeAlarms
                 Resource: "*"
 
+  # Scaling policy based on CPU utilization
   EcsCpuScalingPolicy:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
     Properties:
@@ -769,31 +817,39 @@ Resources:
         ScaleOutCooldown: 60
 
 
+# -----------------------------#
+# Outputs                      #
+# -----------------------------#
 Outputs:
+  # ALB DNS endpoint
   AlbEndpoint:
     Description: The DNS name of the Application Load Balancer.
     Value: !GetAtt Alb.DNSName
     Export:
       Name: !Sub 'ecs-ALB-Endpoint'
 
+  # ARN for GitHub OIDC role
   GitHubOidcRoleArn:
     Description: Role ARN for GitHub Actions to assume via OIDC to push images
     Value: !GetAtt GitHubActionsRole.Arn
     Export:
       Name: !Sub 'ecs-GithubOidcRoleArn'
 
+  # ECR repository URI
   EcrRepositoryUri:
     Description: The URI of the ECR repository.
     Value: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepository}'
     Export:
       Name: !Sub 'ecs-ECR-URI'
 
+  # ECS Cluster name
   EcsClusterName:
     Description: The name of the ECS cluster.
     Value: !Ref EcsCluster
     Export:
       Name: !Sub 'ecs-ECS-Cluster-Name'
 
+  # ECS Service name
   EcsServiceName:
     Description: The name of the ECS service.
     Value: !Ref EcsService
