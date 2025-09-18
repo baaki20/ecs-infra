@@ -200,11 +200,10 @@ Resources:
           FromPort: !Ref ApplicationPort
           ToPort: !Ref ApplicationPort
           SourceSecurityGroupId: !Ref AlbSecurityGroup
+      # Remove SecurityGroupEgress referencing VpcEndpointSecurityGroup to break circular dependency
       SecurityGroupEgress:
-        - IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
-          SourceSecurityGroupId: !Ref VpcEndpointSecurityGroup
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
           Value: !Sub '${AWS::StackName}-ECSTaskSecurityGroup'
@@ -227,25 +226,17 @@ Resources:
       FromPort: 5432
       ToPort: 5432
 
-  EcsTaskSecurityGroupRdsEgress:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      GroupId: !Ref EcsTaskSecurityGroup
-      DestinationSecurityGroupId: !Ref RdsSecurityGroup
-      IpProtocol: tcp
-      FromPort: 5432
-      ToPort: 5432
-
   VpcEndpointSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Security group for VPC endpoints.
       VpcId: !Ref Vpc
+      # Allow ingress from the VPC CIDR instead of referencing EcsTaskSecurityGroup
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 443
           ToPort: 443
-          SourceSecurityGroupId: !Ref EcsTaskSecurityGroup
+          CidrIp: !Ref VpcCidr
       Tags:
         - Key: Name
           Value: !Sub '${AWS::StackName}-VpcEndpointSecurityGroup'
