@@ -315,7 +315,7 @@ Resources:
               - !Sub "arn:aws:s3:::${S3Bucket}/*"
             Condition:
               StringEquals:
-                aws:SourceVpce: !Ref S3VpcEndpoint
+                aws:SourceVpce: !GetAtt S3VpcEndpoint.Id
 
   # Load Balancer
   Alb:
