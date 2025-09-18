@@ -629,7 +629,7 @@ Resources:
       DBInstanceIdentifier: !Sub '${AWS::StackName}-database'
       DBSubnetGroupName: !Ref RdsDbSubnetGroup
       Engine: postgres
-      EngineVersion: '14.1'
+      EngineVersion: '14.18'
       AllocatedStorage: '20'
       DBInstanceClass: db.t3.micro
       MasterUsername: !Ref DbUser
