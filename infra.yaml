@@ -49,6 +49,9 @@ Parameters:
     Default: 'password'
     NoEcho: 'true'
     Description: Master password for the RDS database.
+  GitHubOidcProviderArn:
+    Type: String
+    Description: ARN of the GitHub OIDC provider in this AWS account (e.g., arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com)
 
 # -----------------------------#
 # Resources                    #
@@ -433,7 +436,7 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Federated: arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com
+              Federated: !Ref GitHubOidcProviderArn
             Action: sts:AssumeRoleWithWebIdentity
             Condition:
               StringLike:
