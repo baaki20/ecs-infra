@@ -563,6 +563,21 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS
 
+  # S3 Bucket for CodePipeline Artifacts
+  CodePipelineBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AWS::StackName}-codepipeline-artifacts-${AWS::AccountId}'
+      AccessControl: Private
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-CodePipelineBucket'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
   # S3 Bucket
   S3Bucket:
     Type: AWS::S3::Bucket
@@ -677,3 +692,10 @@ Outputs:
     Value: !Ref S3Bucket
     Export:
       Name: !Sub 'ecs-S3-BucketName'
+
+  # CodePipeline Bucket Name (optional)
+  CodePipelineBucketName:
+    Description: The name of the CodePipeline artifacts S3 bucket.
+    Value: !Ref CodePipelineBucket
+    Export:
+      Name: !Sub 'ecs-CodePipeline-BucketName'
