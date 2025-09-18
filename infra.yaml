@@ -445,42 +445,64 @@ Resources:
           Action: TERMINATE
           TerminationWaitTimeInMinutes: 5
 
-  # IAM Roles
+  # OIDC provider for GitHub Actions authentication
+  GitHubOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - 7560d6f40fa55195f740ee2b1b7c0b4836cbe103
+      Tags:
+        - Key: Name
+          Value: !Sub ecs-GitHubOidcProvider
+
+  # IAM Role for GitHub Actions to push to ECR and upload to S3
   GitHubActionsRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub '${AWS::StackName}-GitHubActionsRole'
+      RoleName: !Sub ecs-GitHubActionsRole
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Principal:
-              Federated: 'arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com'
+              Federated: !Ref GitHubOidcProvider
             Action: sts:AssumeRoleWithWebIdentity
             Condition:
               StringLike:
-                token.actions.githubusercontent.com:sub: !Sub 'repo:${AllowedGithubRepo}:*'
+                token.actions.githubusercontent.com:sub: !Sub repo:${AllowedGithubRepo}:ref:${AllowedGithubBranch}
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
+      Path: "/"
       Policies:
-        - PolicyName: !Sub '${AWS::StackName}-GitHubActionsPolicy'
+        - PolicyName: ECRPush
           PolicyDocument:
             Version: 2012-10-17
             Statement:
               - Effect: Allow
                 Action:
                   - ecr:GetAuthorizationToken
-                  - ecr:BatchCheckLayerAvailability
-                  - ecr:GetDownloadUrlForLayer
-                  - ecr:GetRepositoryPolicy
-                  - ecr:DescribeRepositories
-                  - ecr:ListImages
-                  - ecr:BatchGetImage
+                Resource: "*"
+              - Effect: Allow
+                Action:
                   - ecr:InitiateLayerUpload
                   - ecr:UploadLayerPart
                   - ecr:CompleteLayerUpload
                   - ecr:PutImage
-                Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepository}'
+                  - ecr:BatchCheckLayerAvailability
+                Resource: !GetAtt EcrRepository.Arn
+
+        - PolicyName: S3DeploymentUpload
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:PutObjectAcl
+                Resource: !Sub arn:aws:s3:::${CodePipelineBucket}/*
 
   EcsTaskExecutionRole:
     Type: AWS::IAM::Role
