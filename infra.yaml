@@ -62,14 +62,14 @@ Resources:
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-VPC'
+          Value: photo-uploader-vpc
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-IGW'
+          Value: photo-uploader-igw
 
   AttachGateway:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -86,7 +86,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-PublicSubnet1'
+          Value: photo-uploader-public-subnet-1
 
   PublicSubnet2:
     Type: AWS::EC2::Subnet
@@ -97,7 +97,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-PublicSubnet2'
+          Value: photo-uploader-public-subnet-2
 
   PrivateSubnet1:
     Type: AWS::EC2::Subnet
@@ -107,7 +107,7 @@ Resources:
       AvailabilityZone: !Select [0, !GetAZs '']
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-PrivateSubnet1'
+          Value: photo-uploader-private-subnet-1
 
   PrivateSubnet2:
     Type: AWS::EC2::Subnet
@@ -117,7 +117,7 @@ Resources:
       AvailabilityZone: !Select [1, !GetAZs '']
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-PrivateSubnet2'
+          Value: photo-uploader-private-subnet-2
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -125,7 +125,7 @@ Resources:
       VpcId: !Ref Vpc
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-PublicRouteTable'
+          Value: photo-uploader-public-rt
 
   PublicRoute:
     Type: AWS::EC2::Route
@@ -153,7 +153,7 @@ Resources:
       VpcId: !Ref Vpc
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-PrivateRouteTable1'
+          Value: photo-uploader-private-rt-1
   
   PrivateSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -167,7 +167,7 @@ Resources:
       VpcId: !Ref Vpc
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-PrivateRouteTable2'
+          Value: photo-uploader-private-rt-2
 
   PrivateSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -188,7 +188,7 @@ Resources:
           CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-ALBSecurityGroup'
+          Value: photo-uploader-alb-sg
 
   EcsTaskSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -197,7 +197,7 @@ Resources:
       VpcId: !Ref Vpc
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-ECSTaskSecurityGroup'
+          Value: photo-uploader-ecs-task-sg
   
   RdsSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -206,7 +206,7 @@ Resources:
       VpcId: !Ref Vpc
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-RdsSecurityGroup'
+          Value: photo-uploader-rds-sg
 
   VpcEndpointSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -215,7 +215,7 @@ Resources:
       VpcId: !Ref Vpc
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-VpcEndpointSecurityGroup'
+          Value: photo-uploader-vpce-sg
   
   # Security Group Rules to break circular dependencies
   EcsTaskSecurityGroupIngress:
@@ -311,7 +311,7 @@ Resources:
         - !Ref AlbSecurityGroup
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-ALB'
+          Value: photo-uploader-alb
 
   AlbListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -337,30 +337,30 @@ Resources:
       UnhealthyThresholdCount: 5
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-ECS-TG'
+          Value: photo-uploader-ecs-tg
 
   # ECS
   EcsCluster:
     Type: AWS::ECS::Cluster
     Properties:
-      ClusterName: !Sub '${AWS::StackName}-Cluster'
+      ClusterName: photo-uploader-cluster
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-Cluster'
+          Value: photo-uploader-cluster
 
   EcrRepository:
     Type: AWS::ECR::Repository
     Properties:
-      RepositoryName: !Sub '${AWS::StackName}-repository'
+      RepositoryName: photo-uploader-repository
       ImageTagMutability: MUTABLE
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-repository'
+          Value: photo-uploader-repository
 
   EcsTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: !Sub '${AWS::StackName}-Task'
+      Family: photo-uploader-task
       Cpu: 256
       Memory: 512
       NetworkMode: awsvpc
@@ -369,7 +369,7 @@ Resources:
       ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
       TaskRoleArn: !GetAtt EcsTaskRole.Arn
       ContainerDefinitions:
-        - Name: !Sub '${AWS::StackName}-container'
+        - Name: photo-uploader-container
           Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepository}'
           PortMappings:
             - ContainerPort: !Ref ApplicationPort
@@ -383,7 +383,7 @@ Resources:
   EcsService:
     Type: AWS::ECS::Service
     Properties:
-      ServiceName: !Sub '${AWS::StackName}-Service'
+      ServiceName: photo-uploader-service
       Cluster: !Ref EcsCluster
       TaskDefinition: !Ref EcsTaskDefinition
       LaunchType: FARGATE
@@ -399,32 +399,32 @@ Resources:
           SecurityGroups:
             - !Ref EcsTaskSecurityGroup
       LoadBalancers:
-        - ContainerName: !Sub '${AWS::StackName}-container'
+        - ContainerName: photo-uploader-container
           ContainerPort: !Ref ApplicationPort
           TargetGroupArn: !Ref EcsTargetGroup
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-Service'
+          Value: photo-uploader-service
 
   # CloudWatch Logs
   EcsLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub '${AWS::StackName}-LogGroup'
+      LogGroupName: photo-uploader-log-group
 
   # CI/CD
   # CodeDeploy
   CodeDeployApplication:
     Type: AWS::CodeDeploy::Application
     Properties:
-      ApplicationName: !Sub '${AWS::StackName}-Application'
+      ApplicationName: photo-uploader-codedeploy-app
       ComputePlatform: ECS
 
   CodeDeployDeploymentGroup:
     Type: AWS::CodeDeploy::DeploymentGroup
     Properties:
       ApplicationName: !Ref CodeDeployApplication
-      DeploymentGroupName: !Sub '${AWS::StackName}-DeploymentGroup'
+      DeploymentGroupName: photo-uploader-codedeploy-dg
       DeploymentConfigName: CodeDeployDefault.ECSAllAtOnce
       ServiceRoleArn: !GetAtt CodeDeployServiceRole.Arn
       EcsServices:
@@ -456,13 +456,13 @@ Resources:
         - 7560d6f40fa55195f740ee2b1b7c0b4836cbe103
       Tags:
         - Key: Name
-          Value: !Sub ecs-GitHubOidcProvider
+          Value: photo-uploader-github-oidc-provider
 
   # IAM Role for GitHub Actions to push to ECR and upload to S3
   GitHubActionsRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub ecs-GitHubActionsRole
+      RoleName: photo-uploader-github-actions-role
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -507,7 +507,7 @@ Resources:
   EcsTaskExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub '${AWS::StackName}-TaskExecutionRole'
+      RoleName: photo-uploader-task-execution-role
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -521,7 +521,7 @@ Resources:
   EcsTaskRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub '${AWS::StackName}-TaskRole'
+      RoleName: photo-uploader-task-role
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -552,7 +552,7 @@ Resources:
   CodeDeployServiceRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub '${AWS::StackName}-CodeDeployRole'
+      RoleName: photo-uploader-codedeploy-role
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -567,11 +567,11 @@ Resources:
   CodePipelineBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub '${AWS::StackName}-codepipeline-artifacts-${AWS::AccountId}'
+      BucketName: !Sub 'photo-uploader-codepipeline-artifacts-${AWS::AccountId}'
       AccessControl: Private
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-CodePipelineBucket'
+          Value: photo-uploader-codepipeline-bucket
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -582,11 +582,11 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub '${AWS::StackName}-photo-uploader-${AWS::AccountId}'
+      BucketName: !Sub 'photo-uploader-photo-bucket-${AWS::AccountId}'
       AccessControl: Private
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-PhotoBucket'
+          Value: photo-uploader-photo-bucket
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -621,12 +621,12 @@ Resources:
         - !Ref PrivateSubnet2
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-RdsSubnetGroup'
+          Value: photo-uploader-rds-subnet-group
 
   RdsInstance:
     Type: AWS::RDS::DBInstance
     Properties:
-      DBInstanceIdentifier: !Sub '${AWS::StackName}-database'
+      DBInstanceIdentifier: photo-uploader-database
       DBSubnetGroupName: !Ref RdsDbSubnetGroup
       Engine: postgres
       EngineVersion: '14.18'
@@ -638,7 +638,7 @@ Resources:
         - !Ref RdsSecurityGroup
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-RdsInstance'
+          Value: photo-uploader-rds-instance
 
 # -----------------------------#
 # Outputs                      #
@@ -649,53 +649,53 @@ Outputs:
     Description: The DNS name of the Application Load Balancer.
     Value: !GetAtt Alb.DNSName
     Export:
-      Name: !Sub 'ecs-ALB-Endpoint'
+      Name: photo-uploader-alb-endpoint
 
   # ARN for GitHub OIDC role
   GitHubOidcRoleArn:
     Description: Role ARN for GitHub Actions to assume via OIDC to push images
     Value: !GetAtt GitHubActionsRole.Arn
     Export:
-      Name: !Sub 'ecs-GithubOidcRoleArn'
+      Name: photo-uploader-github-oidc-role-arn
 
   # ECR repository URI
   EcrRepositoryUri:
     Description: The URI of the ECR repository.
     Value: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepository}'
     Export:
-      Name: !Sub 'ecs-ECR-URI'
+      Name: photo-uploader-ecr-uri
 
   # ECS Cluster name
   EcsClusterName:
     Description: The name of the ECS cluster.
     Value: !Ref EcsCluster
     Export:
-      Name: !Sub 'ecs-ECS-Cluster-Name'
+      Name: photo-uploader-ecs-cluster-name
 
   # ECS Service name
   EcsServiceName:
     Description: The name of the ECS service.
     Value: !Ref EcsService
     Export:
-      Name: !Sub 'ecs-ECS-Service-Name'
+      Name: photo-uploader-ecs-service-name
 
   # RDS Database Endpoint
   RdsDbEndpoint:
     Description: The endpoint of the RDS database.
     Value: !GetAtt RdsInstance.Endpoint.Address
     Export:
-      Name: !Sub 'ecs-RDS-Endpoint'
+      Name: photo-uploader-rds-endpoint
 
   # S3 Bucket Name
   S3BucketName:
     Description: The name of the S3 bucket.
     Value: !Ref S3Bucket
     Export:
-      Name: !Sub 'ecs-S3-BucketName'
+      Name: photo-uploader-s3-bucket-name
 
   # CodePipeline Bucket Name (optional)
   CodePipelineBucketName:
     Description: The name of the CodePipeline artifacts S3 bucket.
     Value: !Ref CodePipelineBucket
     Export:
-      Name: !Sub 'ecs-CodePipeline-BucketName'
+      Name: photo-uploader-codepipeline-bucket-name
