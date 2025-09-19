@@ -582,11 +582,11 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub 'photo-uploader-photo-bucket-${AWS::AccountId}'
+      BucketName: !Sub 'photo-uploader-bucket-${AWS::AccountId}'
       AccessControl: Private
       Tags:
         - Key: Name
-          Value: photo-uploader-photo-bucket
+          Value: photo-uploader-bucket
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
