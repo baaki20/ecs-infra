@@ -582,7 +582,7 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub 'photo-uploader-bucket-${AWS::AccountId}'
+      BucketName: !Sub 'photo-bucket-${AWS::AccountId}'
       AccessControl: Private
       Tags:
         - Key: Name
@@ -601,10 +601,12 @@ Resources:
       PolicyDocument:
         Version: 2012-10-17
         Statement:
-          # Allow CloudFormation (or your admin role) to delete the bucket
+          # Allow CloudFormation (or your admin role or baaki user) to delete the bucket
           - Effect: Allow
             Principal:
-              AWS: arn:aws:iam::329599647651:role/AdminRole1
+              AWS:
+                - arn:aws:iam::329599647651:role/AdminRole1
+                - arn:aws:iam::329599647651:user/baaki
             Action:
               - s3:DeleteBucket
               - s3:DeleteObject
