@@ -427,7 +427,7 @@ Resources:
       DeploymentGroupName: photo-uploader-codedeploy-dg
       DeploymentConfigName: CodeDeployDefault.ECSAllAtOnce
       ServiceRoleArn: !GetAtt CodeDeployServiceRole.Arn
-      EcsServices:
+      ECSServices:
         - ClusterName: !Ref EcsCluster
           ServiceName: !Ref EcsService
       DeploymentStyle:
