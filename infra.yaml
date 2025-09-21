@@ -313,6 +313,43 @@ Resources:
         - Key: Name
           Value: photo-uploader-alb
 
+  # Target group for blue environment
+  TargetGroupBlue:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: Alb
+    Properties:
+      Name: "ecs-tg-blue"
+      Port: 8080
+      Protocol: HTTP
+      VpcId: !Ref VPC
+      TargetType: ip
+      HealthCheckPath: /
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      HealthCheckPort: traffic-port
+      Matcher:
+        HttpCode: 200-399
+
+  # Target group for green environment
+  TargetGroupGreen:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "ecs-tg-green"
+      Port: 8080
+      Protocol: HTTP
+      VpcId: !Ref VPC
+      TargetType: ip
+      HealthCheckPath: /
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      Matcher:
+        HttpCode: 200-399
+
+
   AlbListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -422,6 +459,7 @@ Resources:
 
   CodeDeployDeploymentGroup:
     Type: AWS::CodeDeploy::DeploymentGroup
+    DependsOn: EcsService
     Properties:
       ApplicationName: !Ref CodeDeployApplication
       DeploymentGroupName: photo-uploader-codedeploy-dg
@@ -430,6 +468,17 @@ Resources:
       ECSServices:
         - ClusterName: !Ref EcsCluster
           ServiceName: !GetAtt EcsService.Name
+      LoadBalancerInfo:
+        TargetGroupPairInfoList:
+          - TargetGroups:
+              - Name: ecs-tg-blue
+              - Name: ecs-tg-green
+            ProdTrafficRoute:
+              ListenerArns:
+                - !Ref AlbListener
+            TestTrafficRoute:
+              ListenerArns:
+                - !Ref AlbTestListener
       DeploymentStyle:
         DeploymentOption: WITH_TRAFFIC_CONTROL
         DeploymentType: BLUE_GREEN
