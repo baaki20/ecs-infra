@@ -321,7 +321,7 @@ Resources:
       Name: "ecs-tg-blue"
       Port: 8080
       Protocol: HTTP
-      VpcId: !Ref VPC
+      VpcId: !Ref Vpc
       TargetType: ip
       HealthCheckPath: /
       HealthCheckIntervalSeconds: 30
@@ -478,7 +478,7 @@ Resources:
                 - !Ref AlbListener
             TestTrafficRoute:
               ListenerArns:
-                - !Ref AlbTestListener
+                - !Ref AlbListener
       DeploymentStyle:
         DeploymentOption: WITH_TRAFFIC_CONTROL
         DeploymentType: BLUE_GREEN
