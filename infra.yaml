@@ -476,7 +476,7 @@ Resources:
                 - !Ref AlbListener
             TestTrafficRoute:
               ListenerArns:
-                - !Ref AlbListener
+                - !Ref AlbTestListener
       DeploymentStyle:
         DeploymentOption: WITH_TRAFFIC_CONTROL
         DeploymentType: BLUE_GREEN
