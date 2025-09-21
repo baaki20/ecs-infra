@@ -617,7 +617,8 @@ Resources:
   CodePipelineBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub 'photo-uploader-codepipeline-artifacts-${AWS::AccountId}'
+      # Removed explicit BucketName to avoid naming conflicts
+      # BucketName: !Sub 'photo-uploader-codepipeline-artifacts-${AWS::AccountId}'
       AccessControl: Private
       Tags:
         - Key: Name
@@ -632,7 +633,8 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub 'photo-uploader-photo-uploader-${AWS::AccountId}'
+      # Removed explicit BucketName to avoid naming conflicts
+      # BucketName: !Sub 'photo-uploader-photo-uploader-${AWS::AccountId}'
       AccessControl: Private
       Tags:
         - Key: Name
@@ -646,6 +648,7 @@ Resources:
   # S3 Bucket Policy
   S3BucketPolicy:
     Type: AWS::S3::BucketPolicy
+    DependsOn: S3Bucket # Ensure bucket exists before policy
     Properties:
       Bucket: !Ref S3Bucket
       PolicyDocument:
@@ -687,6 +690,9 @@ Resources:
 
   RdsInstance:
     Type: AWS::RDS::DBInstance
+    DependsOn:
+      - RdsDbSubnetGroup
+      - RdsSecurityGroup
     Properties:
       DBInstanceIdentifier: photo-uploader-database
       DBSubnetGroupName: !Ref RdsDbSubnetGroup
