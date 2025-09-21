@@ -654,9 +654,9 @@ Resources:
           - Effect: Allow
             Principal:
               AWS:
-                - arn:aws:iam::${AWS::AccountId}:root # Allows the root account to manage the bucket.
-                - arn:aws:iam::${AWS::AccountId}:user/baaki
-                - arn:aws:iam::${AWS::AccountId}:role/AdminRole1 
+                - !Sub "arn:aws:iam::${AWS::AccountId}:root"
+                - !Sub "arn:aws:iam::${AWS::AccountId}:user/baaki"
+                - !Sub "arn:aws:iam::${AWS::AccountId}:role/AdminRole1"
             Action:
               - s3:DeleteBucket
               - s3:DeleteObject
