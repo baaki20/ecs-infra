@@ -424,7 +424,7 @@ Resources:
       LaunchType: FARGATE
       DeploymentController:
         Type: CODE_DEPLOY
-      DesiredCount: 0
+      DesiredCount: 1
       NetworkConfiguration:
         AwsvpcConfiguration:
           Subnets:
