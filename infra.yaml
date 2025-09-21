@@ -195,6 +195,11 @@ Resources:
     Properties:
       GroupDescription: Security group for the ECS tasks.
       VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref ApplicationPort
+          ToPort: !Ref ApplicationPort
+          SourceSecurityGroupId: !Ref AlbSecurityGroup
       Tags:
         - Key: Name
           Value: photo-uploader-ecs-task-sg
@@ -405,26 +410,35 @@ Resources:
           Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepository}'
           PortMappings:
             - ContainerPort: !Ref ApplicationPort
+              HostPort: !Ref ApplicationPort
+              Protocol: tcp
           LogConfiguration:
             LogDriver: awslogs
             Options:
               awslogs-group: !Ref EcsLogGroup
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: ecs
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - curl -f http://localhost:8080/ || exit 1
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 60
 
   EcsService:
     Type: AWS::ECS::Service
-    DependsOn:
-      - AlbListener
-      - EcsTaskDefinition
     Properties:
       ServiceName: photo-uploader-service
       Cluster: !Ref EcsCluster
       TaskDefinition: !Ref EcsTaskDefinition
       LaunchType: FARGATE
+      PlatformVersion: 1.4.0
       DeploymentController:
         Type: CODE_DEPLOY
       DesiredCount: 1
+      HealthCheckGracePeriodSeconds: 120
       NetworkConfiguration:
         AwsvpcConfiguration:
           Subnets:
@@ -457,7 +471,6 @@ Resources:
 
   CodeDeployDeploymentGroup:
     Type: AWS::CodeDeploy::DeploymentGroup
-    DependsOn: EcsService
     Properties:
       ApplicationName: !Ref CodeDeployApplication
       DeploymentGroupName: photo-uploader-codedeploy-dg
@@ -465,7 +478,7 @@ Resources:
       ServiceRoleArn: !GetAtt CodeDeployServiceRole.Arn
       ECSServices:
         - ClusterName: !Ref EcsCluster
-          ServiceName: !GetAtt EcsService.Name
+          ServiceName: !Ref EcsService
       LoadBalancerInfo:
         TargetGroupPairInfoList:
           - TargetGroups:
