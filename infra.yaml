@@ -358,24 +358,19 @@ Resources:
       Protocol: HTTP
       DefaultActions:
         - Type: forward
-          TargetGroupArn: !Ref EcsTargetGroup
+          TargetGroupArn: !Ref TargetGroupBlue
 
-  EcsTargetGroup:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+ # Listener for test/green traffic (port 9000)
+  AlbTestListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
-      VpcId: !Ref Vpc
-      Port: !Ref ApplicationPort
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroupGreen
+      LoadBalancerArn: !Ref Alb
+      Port: 9000                  
       Protocol: HTTP
-      TargetType: ip
-      HealthCheckPath: /actuator/health
-      HealthCheckIntervalSeconds: 30
-      HealthCheckTimeoutSeconds: 5
-      HealthyThresholdCount: 2
-      UnhealthyThresholdCount: 5
-      Tags:
-        - Key: Name
-          Value: photo-uploader-ecs-tg
-
+ 
   # ECS
   EcsCluster:
     Type: AWS::ECS::Cluster
@@ -419,6 +414,9 @@ Resources:
 
   EcsService:
     Type: AWS::ECS::Service
+    DependsOn:
+      - AlbListener
+      - EcsTaskDefinition
     Properties:
       ServiceName: photo-uploader-service
       Cluster: !Ref EcsCluster
@@ -438,7 +436,7 @@ Resources:
       LoadBalancers:
         - ContainerName: photo-uploader-container
           ContainerPort: !Ref ApplicationPort
-          TargetGroupArn: !Ref EcsTargetGroup
+          TargetGroupArn: !Ref TargetGroupBlue
       Tags:
         - Key: Name
           Value: photo-uploader-service
