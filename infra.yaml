@@ -493,7 +493,6 @@ Resources:
                   - ecr:PutImage
                   - ecr:BatchCheckLayerAvailability
                 Resource: !GetAtt EcrRepository.Arn
-
         - PolicyName: S3DeploymentUpload
           PolicyDocument:
             Version: 2012-10-17
@@ -502,7 +501,11 @@ Resources:
                 Action:
                   - s3:PutObject
                   - s3:PutObjectAcl
-                Resource: !Sub arn:aws:s3:::${CodePipelineBucket}/*
+                Resource: !Sub 'arn:aws:s3:::${CodePipelineBucket}/*'
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: !Sub 'arn:aws:s3:::${CodePipelineBucket}'
 
   EcsTaskExecutionRole:
     Type: AWS::IAM::Role
@@ -582,10 +585,11 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
+      BucketName: !Sub 'photo-uploader-photo-uploader-${AWS::AccountId}'
       AccessControl: Private
       Tags:
         - Key: Name
-          Value: photo-uploader-bucket
+          Value: photo-uploader-photo-uploader-bucket
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -600,21 +604,18 @@ Resources:
       PolicyDocument:
         Version: 2012-10-17
         Statement:
-          # Allow CloudFormation (or your admin role or baaki user) to delete the bucket
           - Effect: Allow
             Principal:
               AWS:
-                - arn:aws:iam::329599647651:role/AdminRole1
-                - arn:aws:iam::329599647651:user/baaki
+                - arn:aws:iam::${AWS::AccountId}:root # Allows the root account to manage the bucket.
+                - arn:aws:iam::${AWS::AccountId}:user/baaki
+                - arn:aws:iam::${AWS::AccountId}:role/AdminRole1 
             Action:
               - s3:DeleteBucket
               - s3:DeleteObject
-              - s3:ListBucket
-              - s3:GetBucketLocation
             Resource:
               - !Sub "arn:aws:s3:::${S3Bucket}"
               - !Sub "arn:aws:s3:::${S3Bucket}/*"
-          # Deny all other access unless via VPC endpoint
           - Effect: Deny
             Principal: "*"
             Action: "s3:*"
