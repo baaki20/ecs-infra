@@ -339,7 +339,7 @@ Resources:
       Name: !Sub "ecs-tg-green"
       Port: 8080
       Protocol: HTTP
-      VpcId: !Ref VPC
+      VpcId: !Ref Vpc
       TargetType: ip
       HealthCheckPath: /
       HealthCheckIntervalSeconds: 30
