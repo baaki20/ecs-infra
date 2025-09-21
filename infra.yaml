@@ -582,7 +582,6 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub 'photo-bucket-${AWS::AccountId}'
       AccessControl: Private
       Tags:
         - Key: Name
