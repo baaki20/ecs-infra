@@ -658,7 +658,7 @@ Resources:
             - Name: AWS_REGION
               Value: !Ref AWS::Region
 
-  # ECS Service using Fargate (restore blue/green deployment controller and both target groups)
+  # ECS Service using Fargate (blue/green deployment controller and both target groups)
   EcsService:
     Type: AWS::ECS::Service
     DependsOn:
