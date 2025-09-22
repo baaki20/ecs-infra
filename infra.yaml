@@ -19,10 +19,14 @@ Parameters:
     Type: String
     Default: 10.0.3.0/24
     Description: CIDR block for the private subnet.
-  DbSubnetCidr:
+  DbSubnetCidr1:
     Type: String
     Default: 10.0.5.0/24
-    Description: CIDR block for the database subnet.
+    Description: CIDR block 1 for the database subnet.
+  DbSubnetCidr2:
+    Type: String
+    Default: 10.0.6.0/24
+    Description: CIDR block 2 for the database subnet.
   ApplicationPort:
     Type: Number
     Default: 8080
@@ -101,15 +105,26 @@ Resources:
           Value: !Sub 'photo-uploader-PrivateSubnet'
 
   # Database subnet for RDS
-  DbSubnet:
+  DbSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
       AvailabilityZone: !Select [0, !GetAZs '']
-      CidrBlock: !Ref DbSubnetCidr
+      CidrBlock: !Ref DbSubnetCidr1
       Tags:
         - Key: Name
-          Value: !Sub 'photo-uploader-DbSubnet'
+          Value: !Sub 'photo-uploader-DbSubnet1'
+
+  # Add a second database subnet for multi-AZ RDS support
+  DbSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [1, !GetAZs '']
+      CidrBlock: !Ref DbSubnetCidr2
+      Tags:
+        - Key: Name
+          Value: !Sub 'photo-uploader-DbSubnet2'
 
   # Route table for public subnet
   PublicRouteTable:
@@ -160,11 +175,18 @@ Resources:
         - Key: Name
           Value: !Sub 'photo-uploader-DbRouteTable'
 
-  # Associate database subnet with database route table
-  DbSubnetRouteTableAssociation:
+  # Associate first database subnet with database route table
+  DbSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref DbSubnet
+      SubnetId: !Ref DbSubnet1
+      RouteTableId: !Ref DbRouteTable
+
+  # Associate second database subnet with database route table
+  DbSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref DbSubnet2
       RouteTableId: !Ref DbRouteTable
 
   # ------------------------------------------------------------#
@@ -369,7 +391,8 @@ Resources:
       DBSubnetGroupName: !Sub 'photo-uploader-db-subnet-group'
       DBSubnetGroupDescription: Subnet group for photo uploader RDS database
       SubnetIds:
-        - !Ref DbSubnet
+        - !Ref DbSubnet1
+        - !Ref DbSubnet2
       Tags:
         - Key: Name
           Value: !Sub 'photo-uploader-db-subnet-group'
