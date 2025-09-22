@@ -432,7 +432,7 @@ Resources:
     Properties:
       ServiceName: photo-uploader-service
       Cluster: !Ref EcsCluster
-      # TaskDefinition: !Ref EcsTaskDefinition
+      TaskDefinition: !Ref EcsTaskDefinition
       LaunchType: FARGATE
       PlatformVersion: 1.4.0
       DeploymentController:
