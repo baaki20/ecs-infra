@@ -448,7 +448,7 @@ Resources:
       DBInstanceIdentifier: !Sub 'photo-uploader-db'
       DBInstanceClass: db.t3.micro
       Engine: postgres
-      EngineVersion: '15.4'
+      EngineVersion: '14.18'
       AllocatedStorage: 20
       StorageType: gp2
       StorageEncrypted: true
