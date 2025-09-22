@@ -432,7 +432,7 @@ Resources:
     Properties:
       ServiceName: photo-uploader-service
       Cluster: !Ref EcsCluster
-      TaskDefinition: !Ref EcsTaskDefinition
+      # TaskDefinition: !Ref EcsTaskDefinition
       LaunchType: FARGATE
       PlatformVersion: 1.4.0
       DeploymentController:
@@ -659,35 +659,35 @@ Resources:
         RestrictPublicBuckets: true
   
   # S3 Bucket Policy
-  S3BucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    DependsOn: S3Bucket # Ensure bucket exists before policy
-    Properties:
-      Bucket: !Ref S3Bucket
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS:
-                - !Sub "arn:aws:iam::${AWS::AccountId}:root"
-                - !Sub "arn:aws:iam::${AWS::AccountId}:user/baaki"
-                - !Sub "arn:aws:iam::${AWS::AccountId}:role/AdminRole1"
-            Action:
-              - s3:DeleteBucket
-              - s3:DeleteObject
-            Resource:
-              - !Sub "arn:aws:s3:::${S3Bucket}"
-              - !Sub "arn:aws:s3:::${S3Bucket}/*"
-          - Effect: Deny
-            Principal: "*"
-            Action: "s3:*"
-            Resource:
-              - !Sub "arn:aws:s3:::${S3Bucket}"
-              - !Sub "arn:aws:s3:::${S3Bucket}/*"
-            Condition:
-              StringNotEquals:
-                aws:SourceVpce: !Ref S3VpcEndpoint
+  # S3BucketPolicy:
+  #   Type: AWS::S3::BucketPolicy
+  #   DependsOn: S3Bucket # Ensure bucket exists before policy
+  #   Properties:
+  #     Bucket: !Ref S3Bucket
+  #     PolicyDocument:
+  #       Version: 2012-10-17
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal:
+  #             AWS:
+  #               - !Sub "arn:aws:iam::${AWS::AccountId}:root"
+  #               - !Sub "arn:aws:iam::${AWS::AccountId}:user/baaki"
+  #               - !Sub "arn:aws:iam::${AWS::AccountId}:role/AdminRole1"
+  #           Action:
+  #             - s3:DeleteBucket
+  #             - s3:DeleteObject
+  #           Resource:
+  #             - !Sub "arn:aws:s3:::${S3Bucket}"
+  #             - !Sub "arn:aws:s3:::${S3Bucket}/*"
+  #         - Effect: Deny
+  #           Principal: "*"
+  #           Action: "s3:*"
+  #           Resource:
+  #             - !Sub "arn:aws:s3:::${S3Bucket}"
+  #             - !Sub "arn:aws:s3:::${S3Bucket}/*"
+  #           Condition:
+  #             StringNotEquals:
+  #               aws:SourceVpce: !Ref S3VpcEndpoint
   
   # RDS Database
   RdsDbSubnetGroup:
