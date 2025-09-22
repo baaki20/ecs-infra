@@ -669,7 +669,7 @@ Resources:
       ServiceName: !Sub 'photo-uploader-service'
       TaskDefinition: !Ref EcsTaskDefinition
       LaunchType: FARGATE
-      DesiredCount: 1
+      DesiredCount: 0
       DeploymentController:
         Type: CODE_DEPLOY
       NetworkConfiguration:
