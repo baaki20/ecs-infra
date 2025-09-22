@@ -234,12 +234,7 @@ Resources:
               - 's3:PutObject'
               - 's3:DeleteObject'
               - 's3:ListBucket'
-            Resource:
-              - !Sub 'arn:aws:s3:::${PhotosBucket}'
-              - !Sub 'arn:aws:s3:::${PhotosBucket}/*'
-            Condition:
-              StringEquals:
-                'aws:sourceVpce': !Ref S3VpcEndpoint
+            Resource: "*"
 
   # VPC Endpoints for ECR and CloudWatch Logs (restore these)
   EcrApiVpcEndpoint:
