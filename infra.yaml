@@ -535,20 +535,23 @@ Resources:
       Policies:
         - PolicyName: ECRPush
           PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - ecr:GetAuthorizationToken
-                Resource: "*"
-              - Effect: Allow
-                Action:
-                  - ecr:InitiateLayerUpload
-                  - ecr:UploadLayerPart
-                  - ecr:CompleteLayerUpload
-                  - ecr:PutImage
-                  - ecr:BatchCheckLayerAvailability
-                Resource: !GetAtt EcrRepository.Arn
+              Version: 2012-10-17
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - ecr:GetAuthorizationToken
+                  Resource: "*"
+                - Effect: Allow
+                  Action:
+                    - ecr:PutImage
+                    - ecr:BatchCheckLayerAvailability
+                  Resource: !GetAtt EcrRepository.Arn
+                - Effect: Allow
+                  Action:
+                    - ecr:InitiateLayerUpload
+                    - ecr:UploadLayerPart
+                    - ecr:CompleteLayerUpload
+                  Resource: "*"
         - PolicyName: S3DeploymentUpload
           PolicyDocument:
             Version: 2012-10-17
