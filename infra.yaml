@@ -397,9 +397,9 @@ Resources:
   EcsTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: photo-uploader-task
-      Cpu: 256
-      Memory: 512
+      Family: !Sub 'photo-uploader-task'
+      Cpu: '256'
+      Memory: '512'
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
@@ -670,9 +670,7 @@ Resources:
   #         - Effect: Allow
   #           Principal:
   #             AWS:
-  #               - !Sub "arn:aws:iam::${AWS::AccountId}:root"
-  #               - !Sub "arn:aws:iam::${AWS::AccountId}:user/baaki"
-  #               - !Sub "arn:aws:iam::${AWS::AccountId}:role/AdminRole1"
+  #               - !Sub "arn:aws:sts::${AWS::AccountId}:assumed-role/AdminRole1/AWSCloudFormation"
   #           Action:
   #             - s3:DeleteBucket
   #             - s3:DeleteObject
