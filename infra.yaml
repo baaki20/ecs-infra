@@ -618,7 +618,7 @@ Resources:
                   - 's3:ListBucket'
                 Resource:
                   - !GetAtt PhotosBucket.Arn
-                  - !Sub '${PhotosBucket}/*'
+                  - !Sub 'arn:aws:s3:::${PhotosBucket}/*'
 
   # CloudWatch Log Group for ECS container logs
   CloudWatchLogGroup:
