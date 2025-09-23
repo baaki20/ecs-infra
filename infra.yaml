@@ -54,6 +54,10 @@ Parameters:
     Description: Password for the RDS PostgreSQL database
     MinLength: 8
     MaxLength: 128
+  EcrRepositoryName:
+    Type: String
+    Default: photo-uploader-repo
+    Description: Name of the existing ECR repository to use for ECS images
 
 Resources:
   # ------------------------------------------------------------#
@@ -461,33 +465,6 @@ Resources:
         - Key: Name
           Value: !Sub 'photo-uploader-Cluster'
 
-  # ECR repository for container images
-  EcrRepository:
-    Type: AWS::ECR::Repository
-    Properties:
-      RepositoryName: !Sub 'photo-uploader-repo'
-      ImageTagMutability: MUTABLE
-      ImageScanningConfiguration:
-        ScanOnPush: true
-      Tags:
-        - Key: Name
-          Value: !Sub 'photo-uploader-repo'
-      RepositoryPolicyText:
-        Version: '2008-10-17'
-        Statement:
-          - Sid: AllowAccountAccess
-            Effect: Allow
-            Principal:
-              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
-            Action:
-              - ecr:GetDownloadUrlForLayer
-              - ecr:BatchGetImage
-              - ecr:BatchCheckLayerAvailability
-              - ecr:PutImage
-              - ecr:InitiateLayerUpload
-              - ecr:UploadLayerPart
-              - ecr:CompleteLayerUpload
-
   # S3 bucket for CodePipeline artifacts
   CodePipelineBucket:
     Type: AWS::S3::Bucket
@@ -543,7 +520,7 @@ Resources:
                   Action:
                     - ecr:PutImage
                     - ecr:BatchCheckLayerAvailability
-                  Resource: !GetAtt EcrRepository.Arn
+                  Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepositoryName}'
                 - Effect: Allow
                   Action:
                     - ecr:InitiateLayerUpload
@@ -621,7 +598,7 @@ Resources:
       TaskRoleArn: !GetAtt EcsTaskRole.Arn
       ContainerDefinitions:
         - Name: !Sub 'photo-uploader-container'
-          Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepository}:latest'
+          Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepositoryName}:latest'
           PortMappings:
             - ContainerPort: !Ref ApplicationPort
               Protocol: tcp
@@ -845,7 +822,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - ecr:DescribeImages
-                Resource: !Sub arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepository}
+                Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepositoryName}'
               - Effect: Allow
                 Action:
                   - iam:PassRole
@@ -965,7 +942,7 @@ Outputs:
   # ECR repository URI
   EcrRepositoryUri:
     Description: The URI of the ECR repository.
-    Value: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepository}'
+    Value: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepositoryName}'
     Export:
       Name: !Sub 'photo-uploader-ECR-URI'
 
