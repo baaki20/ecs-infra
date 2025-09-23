@@ -909,7 +909,7 @@ Resources:
           - 'ECR Image Action'
         detail:
           repository-name:
-            - !Ref EcrRepository
+            - !Ref EcrRepositoryName
           action-type:
             - 'PUSH'
           result:
