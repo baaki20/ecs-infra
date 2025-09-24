@@ -205,20 +205,7 @@ Resources:
       VpcId: !Ref VPC
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
       VpcEndpointType: Gateway
-      RouteTableIds:
-        - !Ref PrivateRouteTable
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal: '*'
-            Action:
-              - 's3:GetObject'
-              - 's3:PutObject'
-            Resource: !Sub 'arn:aws:s3:::${PhotosBucket}/*'
-            Condition:
-              StringEquals:
-                'aws:sourceVpce': !Ref S3VpcEndpoint
+      RouteTableIds: [!Ref PrivateRouteTable, !Ref DbRouteTable]
 
   EcrApiVpcEndpoint:
     Type: AWS::EC2::VPCEndpoint
