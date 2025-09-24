@@ -312,7 +312,7 @@ Resources:
   PhotosBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub 'photo-uploader-${AWS::AccountId}-${AWS::Region}'
+      BucketName: !Sub 'photo-uploader-bucket-${AWS::AccountId}-${AWS::Region}'
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
