@@ -217,7 +217,7 @@ Resources:
       RouteTableId: !Ref DbRouteTable
 
   # ------------------------------------------------------------#
-  #  VPC Endpoints for ECR and S3                              #
+  #  VPC Endpoints for ECR and S3                               #
   # ------------------------------------------------------------#
   # S3 Gateway VPC Endpoint
   S3VpcEndpoint:
@@ -240,7 +240,8 @@ Resources:
               - 's3:ListBucket'
             Resource: "*"
 
-  # VPC Endpoints for ECR and CloudWatch Logs (restore these)
+  #-- VPC Endpoints for ECR and CloudWatch Logs --#
+  # VPC Endpoint for ECR API (authentication)
   EcrApiVpcEndpoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:
@@ -260,6 +261,7 @@ Resources:
             Action: '*'
             Resource: '*'
 
+# VPC Endpoint for ECR DKR (docker pull and docker push)
   EcrDkrVpcEndpoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:
@@ -457,7 +459,6 @@ Resources:
       ClusterName: !Sub 'photo-uploader-Cluster'
       CapacityProviders:
         - FARGATE
-        - FARGATE_SPOT
       DefaultCapacityProviderStrategy:
         - CapacityProvider: FARGATE
           Weight: 1
@@ -700,7 +701,7 @@ Resources:
       Matcher:
         HttpCode: 200-399
 
-  # Target group for green environment (restore)
+  # Target group for green environment
   TargetGroupGreen:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -729,7 +730,7 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref TargetGroupBlue
 
-  # Listener for test/green traffic (restore)
+  # Listener for test/green traffic
   AlbTestListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -740,7 +741,7 @@ Resources:
       Port: 9000
       Protocol: HTTP
 
-  # CodeDeploy resources (restore)
+  # CodeDeploy resources
   CodeDeployServiceRole:
     Type: AWS::IAM::Role
     Properties:
