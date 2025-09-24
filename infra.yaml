@@ -578,6 +578,17 @@ Resources:
               Service: [ecs-tasks.amazonaws.com]
             Action: sts:AssumeRole
       ManagedPolicyArns:
+      Policies:
+        - PolicyName: EcsTaskExecutionSecretsManagerPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'secretsmanager:GetSecretValue'
+                  - 'kms:Decrypt' # Required if the secret is encrypted with a custom KMS key
+                Resource: !Ref DatabaseSecret
+      ManagedPolicyArns: # Keep the existing managed policy for ECR and CloudWatch Logs
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
 
   # IAM Role for ECS tasks (application-level permissions)
