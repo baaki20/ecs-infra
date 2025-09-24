@@ -2,9 +2,10 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: >
   CloudFormation template for a highly available, containerized photo uploader application
   on Amazon ECS (Fargate) with RDS, S3, and VPC endpoints for secure communication.
+  This version implements enhanced security using AWS Secrets Manager for credentials.
 
 # -----------------------------#
-# Parameters                   #
+# Parameters                   #
 # -----------------------------#
 Parameters:
   VpcCidr:
@@ -35,35 +36,30 @@ Parameters:
     Type: Number
     Default: 8080
     Description: Port on which the application container listens.
-  AllowedGithubRepo:
-    Type: String
-    Default: baaki20/ecs-app
-    Description: Allowed Github Repo
-  AllowedGithubBranch:
-    Type: String
-    Default: refs/heads/main
-    Description: Allowed Github Branch
-  DatabaseUsername:
-    Type: String
-    Default: photoapp
-    Description: Username for the RDS PostgreSQL database
-  DatabasePassword:
-    Type: String
-    Default: MySecurePassword123!
-    NoEcho: true
-    Description: Password for the RDS PostgreSQL database
-    MinLength: 8
-    MaxLength: 128
   EcrRepositoryName:
     Type: String
     Default: photo-uploader-repo
-    Description: Name of the existing ECR repository to use for ECS images
+    Description: Name of the existing ECR repository to use for ECS images.
+  AllowedGithubRepo:
+    Type: String
+    Default: baaki20/ecs-app
+    Description: Allowed Github Repo for OIDC.
+  AllowedGithubBranch:
+    Type: String
+    Default: refs/heads/main
+    Description: Allowed Github Branch for OIDC.
+  DatabaseUsername:
+    Type: String
+    Default: photoapp
+    Description: Username for the RDS PostgreSQL database.
 
+# -----------------------------#
+# Resources                    #
+# -----------------------------#
 Resources:
   # ------------------------------------------------------------#
-  #  VPC and Networking                                         #
+  #  VPC and Networking                                         #
   # ------------------------------------------------------------#
-  # VPC for the application
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -74,7 +70,6 @@ Resources:
         - Key: Name
           Value: !Sub 'photo-uploader-VPC'
 
-  # Internet Gateway for public internet access
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
@@ -82,14 +77,12 @@ Resources:
         - Key: Name
           Value: !Sub 'photo-uploader-IGW'
 
-  # Attach Internet Gateway to VPC
   VPCGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
 
-  # Public subnet 1 for the application
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -101,7 +94,6 @@ Resources:
         - Key: Name
           Value: !Sub 'photo-uploader-PublicSubnet1'
 
-  # Public subnet 2 for the application
   PublicSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
@@ -113,7 +105,6 @@ Resources:
         - Key: Name
           Value: !Sub 'photo-uploader-PublicSubnet2'
 
-  # Private subnet for ECS tasks
   PrivateSubnet:
     Type: AWS::EC2::Subnet
     Properties:
@@ -124,7 +115,6 @@ Resources:
         - Key: Name
           Value: !Sub 'photo-uploader-PrivateSubnet'
 
-  # Database subnet for RDS
   DbSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -135,7 +125,6 @@ Resources:
         - Key: Name
           Value: !Sub 'photo-uploader-DbSubnet1'
 
-  # Add a second database subnet for multi-AZ RDS support
   DbSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
@@ -146,7 +135,6 @@ Resources:
         - Key: Name
           Value: !Sub 'photo-uploader-DbSubnet2'
 
-  # Route table for public subnet
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -155,7 +143,6 @@ Resources:
         - Key: Name
           Value: !Sub 'photo-uploader-PublicRouteTable'
 
-  # Default route to Internet Gateway for public subnet
   PublicRoute:
     Type: AWS::EC2::Route
     Properties:
@@ -163,21 +150,18 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
 
-  # Associate public subnet 1 with public route table
   PublicSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PublicSubnet1
       RouteTableId: !Ref PublicRouteTable
 
-  # Associate public subnet 2 with public route table
   PublicSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PublicSubnet2
       RouteTableId: !Ref PublicRouteTable
 
-  # Private route table for private subnet (no internet access, only VPC endpoints)
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -186,14 +170,12 @@ Resources:
         - Key: Name
           Value: !Sub 'photo-uploader-PrivateRouteTable'
 
-  # Associate private subnet with private route table
   PrivateSubnetRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PrivateSubnet
       RouteTableId: !Ref PrivateRouteTable
 
-  # Database route table
   DbRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -202,14 +184,12 @@ Resources:
         - Key: Name
           Value: !Sub 'photo-uploader-DbRouteTable'
 
-  # Associate first database subnet with database route table
   DbSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref DbSubnet1
       RouteTableId: !Ref DbRouteTable
 
-  # Associate second database subnet with database route table
   DbSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -217,9 +197,8 @@ Resources:
       RouteTableId: !Ref DbRouteTable
 
   # ------------------------------------------------------------#
-  #  VPC Endpoints for ECR and S3                               #
+  #  VPC Endpoints for ECR and S3                              #
   # ------------------------------------------------------------#
-  # S3 Gateway VPC Endpoint
   S3VpcEndpoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:
@@ -236,12 +215,11 @@ Resources:
             Action:
               - 's3:GetObject'
               - 's3:PutObject'
-              - 's3:DeleteObject'
-              - 's3:ListBucket'
-            Resource: "*"
+            Resource: !Sub 'arn:aws:s3:::${PhotosBucket}/*'
+            Condition:
+              StringEquals:
+                'aws:sourceVpce': !Ref S3VpcEndpoint
 
-  #-- VPC Endpoints for ECR and CloudWatch Logs --#
-  # VPC Endpoint for ECR API (authentication)
   EcrApiVpcEndpoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:
@@ -253,15 +231,7 @@ Resources:
       SecurityGroupIds:
         - !Ref VpcEndpointSecurityGroup
       PrivateDnsEnabled: true
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal: '*'
-            Action: '*'
-            Resource: '*'
 
-# VPC Endpoint for ECR DKR (docker pull and docker push)
   EcrDkrVpcEndpoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:
@@ -273,13 +243,6 @@ Resources:
       SecurityGroupIds:
         - !Ref VpcEndpointSecurityGroup
       PrivateDnsEnabled: true
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal: '*'
-            Action: '*'
-            Resource: '*'
 
   LogsVpcEndpoint:
     Type: AWS::EC2::VPCEndpoint
@@ -292,18 +255,10 @@ Resources:
       SecurityGroupIds:
         - !Ref VpcEndpointSecurityGroup
       PrivateDnsEnabled: true
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal: '*'
-            Action: '*'
-            Resource: '*'
 
   # ------------------------------------------------------------#
-  #  Security Groups                                            #
+  #  Security Groups                                            #
   # ------------------------------------------------------------#
-  # Security group for ALB to allow HTTP traffic
   AlbSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -319,7 +274,6 @@ Resources:
         - Key: Name
           Value: !Sub 'photo-uploader-ALB-SG'
 
-  # Security group for ECS tasks
   EcsSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -335,7 +289,6 @@ Resources:
         - Key: Name
           Value: !Sub 'photo-uploader-ECS-SG'
 
-  # Security group for VPC Endpoints
   VpcEndpointSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -351,7 +304,6 @@ Resources:
         - Key: Name
           Value: !Sub 'photo-uploader-VpcEndpoint-SG'
 
-  # Security group for RDS
   RdsSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -368,7 +320,7 @@ Resources:
           Value: !Sub 'photo-uploader-RDS-SG'
 
   # ------------------------------------------------------------#
-  #  S3 Bucket for Photos                                       #
+  #  S3 Bucket for Photos                                       #
   # ------------------------------------------------------------#
   PhotosBucket:
     Type: AWS::S3::Bucket
@@ -385,7 +337,6 @@ Resources:
         - Key: Name
           Value: !Sub 'photo-uploader-bucket'
 
-  # S3 Bucket Policy to restrict access to VPC Endpoint only
   PhotosBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
@@ -393,25 +344,27 @@ Resources:
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
-          - Sid: AllowVPCEndpointAccess
-            Effect: Allow
-            Principal: '*'
-            Action:
-              - 's3:GetObject'
-              - 's3:PutObject'
-              - 's3:DeleteObject'
-              - 's3:ListBucket'
+          - Sid: DenyAllButVPCEndpoint
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
             Resource:
               - !Sub 'arn:aws:s3:::${PhotosBucket}'
               - !Sub 'arn:aws:s3:::${PhotosBucket}/*'
             Condition:
-              StringEquals:
+              StringNotEquals:
                 'aws:sourceVpce': !Ref S3VpcEndpoint
 
   # ------------------------------------------------------------#
-  #  RDS Database                                               #
+  #  RDS Database and Secrets Manager                           #
   # ------------------------------------------------------------#
-  # DB Subnet Group for RDS
+  DatabaseSecret:
+    Type: 'AWS::SecretsManager::Secret'
+    Properties:
+      Name: !Sub 'photo-uploader-db-credentials'
+      Description: 'Credentials for the photo uploader RDS database'
+      SecretString: !Sub '{"username":"${DatabaseUsername}","password":"${!uuid}"}'
+
   DbSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
@@ -424,7 +377,6 @@ Resources:
         - Key: Name
           Value: !Sub 'photo-uploader-db-subnet-group'
 
-  # RDS PostgreSQL Database
   PhotoDatabase:
     Type: AWS::RDS::DBInstance
     Properties:
@@ -436,7 +388,7 @@ Resources:
       StorageType: gp2
       StorageEncrypted: true
       MasterUsername: !Ref DatabaseUsername
-      MasterUserPassword: !Ref DatabasePassword
+      MasterUserPassword: '{{resolve:secretsmanager:arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${DatabaseSecret}::password}}'
       DBName: photouploader
       VPCSecurityGroups:
         - !Ref RdsSecurityGroup
@@ -450,9 +402,8 @@ Resources:
           Value: !Sub 'photo-uploader-database'
 
   # ------------------------------------------------------------#
-  #  ECS & Fargate                                              #
+  #  ECS & Fargate                                              #
   # ------------------------------------------------------------#
-  # ECS Cluster for running services
   EcsCluster:
     Type: AWS::ECS::Cluster
     Properties:
@@ -466,7 +417,6 @@ Resources:
         - Key: Name
           Value: !Sub 'photo-uploader-Cluster'
 
-  # S3 bucket for CodePipeline artifacts
   CodePipelineBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -477,7 +427,6 @@ Resources:
         - Key: Name
           Value: !Sub 'codepipeline-photo-uploader-artifact-store'
 
-  # OIDC provider for GitHub Actions authentication
   GitHubOidcProvider:
     Type: AWS::IAM::OIDCProvider
     Properties:
@@ -490,7 +439,6 @@ Resources:
         - Key: Name
           Value: !Sub photo-uploader-GitHubOidcProvider
 
-  # IAM Role for GitHub Actions
   GitHubActionsRole:
     Type: AWS::IAM::Role
     Properties:
@@ -511,23 +459,23 @@ Resources:
       Policies:
         - PolicyName: ECRPush
           PolicyDocument:
-              Version: 2012-10-17
-              Statement:
-                - Effect: Allow
-                  Action:
-                    - ecr:GetAuthorizationToken
-                  Resource: "*"
-                - Effect: Allow
-                  Action:
-                    - ecr:PutImage
-                    - ecr:BatchCheckLayerAvailability
-                  Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepositoryName}'
-                - Effect: Allow
-                  Action:
-                    - ecr:InitiateLayerUpload
-                    - ecr:UploadLayerPart
-                    - ecr:CompleteLayerUpload
-                  Resource: "*"
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ecr:PutImage
+                  - ecr:BatchCheckLayerAvailability
+                Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepositoryName}'
+              - Effect: Allow
+                Action:
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                Resource: "*"
         - PolicyName: S3DeploymentUpload
           PolicyDocument:
             Version: 2012-10-17
@@ -538,7 +486,6 @@ Resources:
                   - s3:PutObjectAcl
                 Resource: !Sub arn:aws:s3:::${CodePipelineBucket}/*
 
-  # IAM Role for ECS task execution
   EcsTaskExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -553,7 +500,6 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
 
-  # IAM Role for ECS tasks (application-level permissions)
   EcsTaskRole:
     Type: AWS::IAM::Role
     Properties:
@@ -577,15 +523,17 @@ Resources:
                 Resource:
                   - !GetAtt PhotosBucket.Arn
                   - !Sub 'arn:aws:s3:::${PhotosBucket}/*'
+              - Effect: Allow
+                Action:
+                  - 'secretsmanager:GetSecretValue'
+                Resource: !Ref DatabaseSecret
 
-  # CloudWatch Log Group for ECS container logs
   CloudWatchLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub '/photo-uploader'
       RetentionInDays: 14
 
-  # ECS Task Definition for the application container
   EcsTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -618,6 +566,9 @@ Resources:
               awslogs-group: !Ref CloudWatchLogGroup
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: ecs
+          Secrets:
+            - Name: DB_PASSWORD
+              ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${DatabaseSecret}:password::'
           Environment:
             - Name: SPRING_PROFILES_ACTIVE
               Value: production
@@ -629,14 +580,11 @@ Resources:
               Value: photouploader
             - Name: DB_USERNAME
               Value: !Ref DatabaseUsername
-            - Name: DB_PASSWORD
-              Value: !Ref DatabasePassword
             - Name: S3_BUCKET_NAME
               Value: !Ref PhotosBucket
             - Name: AWS_REGION
               Value: !Ref AWS::Region
 
-  # ECS Service using Fargate (blue/green deployment controller and both target groups)
   EcsService:
     Type: AWS::ECS::Service
     DependsOn:
@@ -666,9 +614,8 @@ Resources:
           Value: !Sub 'photo-uploader-service'
 
   # ------------------------------------------------------------#
-  #  Application Load Balancer (ALB)                            #
+  #  Application Load Balancer (ALB)                            #
   # ------------------------------------------------------------#
-  # Internet-facing ALB for the application
   Alb:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -682,7 +629,6 @@ Resources:
         - Key: Name
           Value: !Sub 'photo-uploader-ALB'
 
-  # Target group for blue environment
   TargetGroupBlue:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     DependsOn: Alb
@@ -701,7 +647,6 @@ Resources:
       Matcher:
         HttpCode: 200-399
 
-  # Target group for green environment
   TargetGroupGreen:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -718,7 +663,6 @@ Resources:
       Matcher:
         HttpCode: 200-399
 
-  # Listener for production traffic (port 80)
   AlbListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     DependsOn: TargetGroupBlue
@@ -730,7 +674,6 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref TargetGroupBlue
 
-  # Listener for test/green traffic
   AlbTestListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -741,7 +684,6 @@ Resources:
       Port: 9000
       Protocol: HTTP
 
-  # CodeDeploy resources
   CodeDeployServiceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -797,7 +739,6 @@ Resources:
         DeploymentReadyOption:
           ActionOnTimeout: CONTINUE_DEPLOYMENT
 
-  # IAM Role for CodePipeline
   CodePipelineServiceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -829,7 +770,6 @@ Resources:
                   - iam:PassRole
                 Resource: '*'
 
-  # CodePipeline for CI/CD
   CodePipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
@@ -839,7 +779,6 @@ Resources:
         Type: S3
         Location: !Ref CodePipelineBucket
       Stages:
-        # Source Stage
         - Name: Source
           Actions:
             - Name: EcrSource
@@ -855,8 +794,6 @@ Resources:
               OutputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 1
-
-        # Deploy Stage
         - Name: Deploy
           Actions:
             - Name: DeployToECS
@@ -876,7 +813,6 @@ Resources:
                 AppSpecTemplatePath: appspec.yml
               RunOrder: 1
 
-  # IAM Role for EventBridge to trigger CodePipeline
   EventBridgeRole:
     Type: AWS::IAM::Role
     DependsOn: CodePipeline
@@ -897,7 +833,6 @@ Resources:
                 Action: codepipeline:StartPipelineExecution
                 Resource: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}
 
-  # EventBridge rule to trigger pipeline on ECR image push
   EventBridgeRule:
     Type: AWS::Events::Rule
     Properties:
@@ -923,66 +858,57 @@ Resources:
           Id: CodePipelineTarget
 
 # -----------------------------#
-# Outputs                      #
+# Outputs                      #
 # -----------------------------#
 Outputs:
-  # ALB DNS endpoint
   AlbEndpoint:
     Description: The DNS name of the Application Load Balancer.
     Value: !GetAtt Alb.DNSName
     Export:
       Name: !Sub 'photo-uploader-ALB-Endpoint'
 
-  # ARN for GitHub OIDC role
   GitHubOidcRoleArn:
     Description: Role ARN for GitHub Actions to assume via OIDC to push images
     Value: !GetAtt GitHubActionsRole.Arn
     Export:
       Name: !Sub 'photo-uploader-GithubOidcRoleArn'
 
-  # ECR repository URI
   EcrRepositoryUri:
     Description: The URI of the ECR repository.
     Value: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepositoryName}'
     Export:
       Name: !Sub 'photo-uploader-ECR-URI'
 
-  # ECS Cluster name
   EcsClusterName:
     Description: The name of the ECS cluster.
     Value: !Ref EcsCluster
     Export:
       Name: !Sub 'photo-uploader-ECS-Cluster-Name'
 
-  # ECS Service name
   EcsServiceName:
     Description: The name of the ECS service.
     Value: !Ref EcsService
     Export:
       Name: !Sub 'photo-uploader-ECS-Service-Name'
 
-  # S3 Bucket name for photos
   PhotosBucketName:
     Description: The name of the S3 bucket for storing photos.
     Value: !Ref PhotosBucket
     Export:
       Name: !Sub 'photo-uploader-S3-Bucket-Name'
 
-  # RDS Database endpoint
   DatabaseEndpoint:
     Description: The RDS database endpoint.
     Value: !GetAtt PhotoDatabase.Endpoint.Address
     Export:
       Name: !Sub 'photo-uploader-DB-Endpoint'
 
-  # Database port
   DatabasePort:
     Description: The RDS database port.
     Value: !GetAtt PhotoDatabase.Endpoint.Port
     Export:
       Name: !Sub 'photo-uploader-DB-Port'
 
-  # Database name
   DatabaseName:
     Description: The RDS database name.
     Value: photouploader
