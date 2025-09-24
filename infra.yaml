@@ -577,7 +577,6 @@ Resources:
             Principal:
               Service: [ecs-tasks.amazonaws.com]
             Action: sts:AssumeRole
-      ManagedPolicyArns:
       Policies:
         - PolicyName: EcsTaskExecutionSecretsManagerPolicy
           PolicyDocument:
