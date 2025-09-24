@@ -348,9 +348,12 @@ Resources:
   DatabaseSecret:
     Type: 'AWS::SecretsManager::Secret'
     Properties:
-      Name: !Sub 'photo-uploader-db-credentials'
       Description: 'Credentials for the photo uploader RDS database'
-      SecretString: !Sub '{"username":"${DatabaseUsername}","password":"${!uuid}"}'
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username": "${DatabaseUsername}"}'
+        GenerateStringKey: 'password'
+        PasswordLength: 16
+        ExcludePunctuation: true
 
   DbSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
@@ -375,7 +378,7 @@ Resources:
       StorageType: gp2
       StorageEncrypted: true
       MasterUsername: !Ref DatabaseUsername
-      MasterUserPassword: '{{resolve:secretsmanager:arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${DatabaseSecret}::password}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DatabaseSecret}:SecretString:password}}'
       DBName: photouploader
       VPCSecurityGroups:
         - !Ref RdsSecurityGroup
@@ -555,7 +558,7 @@ Resources:
               awslogs-stream-prefix: ecs
           Secrets:
             - Name: DB_PASSWORD
-              ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${DatabaseSecret}:password::'
+              ValueFrom: !Sub '${DatabaseSecret}:password::'
           Environment:
             - Name: SPRING_PROFILES_ACTIVE
               Value: production
